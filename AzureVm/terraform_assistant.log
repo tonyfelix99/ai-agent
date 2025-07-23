@@ -1,0 +1,62 @@
+2025-07-21 21:24:15,922 - INFO - Successfully read Terraform file: /mnt/c/Users/TonyFelix/Documents/AI-ASSISTANT/AzureVm/main.tf
+2025-07-21 21:24:15,923 - INFO - Sending prompt to LLM (attempt 1)
+2025-07-21 21:26:41,006 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-07-21 21:30:40,343 - INFO - Received response from LLM
+2025-07-21 21:30:40,346 - INFO - Cleaned LLM response
+2025-07-21 21:30:40,348 - WARNING - Unbalanced braces: 10 open, 9 close
+2025-07-21 21:30:40,349 - WARNING - LLM response failed validation
+2025-07-21 21:30:40,350 - INFO - Retrying with LLM...
+2025-07-21 21:30:40,351 - INFO - Sending prompt to LLM (attempt 2)
+2025-07-21 21:32:43,636 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-07-21 21:37:46,828 - INFO - Successfully read Terraform file: /mnt/c/Users/TonyFelix/Documents/AI-ASSISTANT/AzureVm/main.tf
+2025-07-21 21:37:46,830 - INFO - Sending prompt to LLM (attempt 1)
+2025-07-21 21:39:30,189 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-07-21 21:42:39,043 - INFO - Received response from LLM
+2025-07-21 21:42:39,046 - INFO - Cleaned LLM response - 59 lines -> 59 lines
+2025-07-21 21:42:39,047 - WARNING - Unbalanced braces: 10 open, 9 close
+2025-07-21 21:42:39,048 - INFO - Attempting to auto-balance braces
+2025-07-21 21:42:39,048 - INFO - Added missing closing brace
+2025-07-21 21:43:14,806 - INFO - Backup saved to: /mnt/c/Users/TonyFelix/Documents/AI-ASSISTANT/AzureVm/backups/main_20250721_214314.tf
+2025-07-21 21:43:14,810 - INFO - Terraform file updated successfully
+2025-07-21 21:43:19,824 - INFO - Running terraform command: terraform init -input=false -upgrade
+2025-07-21 21:43:22,696 - WARNING - Command failed with return code 1
+2025-07-21 21:53:23,311 - INFO - Successfully read Terraform file: /mnt/c/Users/TonyFelix/Documents/AI-ASSISTANT/AzureVm/main.tf
+2025-07-21 21:53:23,313 - INFO - Sending prompt to LLM (attempt 1)
+2025-07-21 21:55:32,144 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-07-21 21:58:33,540 - INFO - Received response from LLM
+2025-07-21 21:58:33,543 - INFO - Cleaned LLM response - 62 lines -> 62 lines
+2025-07-21 21:58:33,544 - INFO - Using auto-corrected content with balanced braces
+2025-07-21 21:59:54,554 - INFO - Backup saved to: /mnt/c/Users/TonyFelix/Documents/AI-ASSISTANT/AzureVm/backups/main_20250721_215954.tf
+2025-07-21 21:59:54,557 - INFO - Terraform file updated successfully
+2025-07-21 21:59:58,931 - INFO - Running terraform command: terraform init -input=false -upgrade
+2025-07-21 22:00:04,740 - INFO - Command successful: terraform init -input=false -upgrade
+2025-07-21 22:00:04,740 - INFO - Running terraform command: terraform plan
+2025-07-21 22:01:11,648 - INFO - Command successful: terraform plan
+2025-07-21 22:01:22,498 - INFO - Running terraform command: terraform apply -auto-approve
+2025-07-21 22:03:07,783 - INFO - Command successful: terraform apply -auto-approve
+2025-07-21 22:06:08,577 - INFO - Successfully read Terraform file: /mnt/c/Users/TonyFelix/Documents/AI-ASSISTANT/AzureVm/main.tf
+2025-07-21 22:06:08,578 - INFO - Sending prompt to LLM (attempt 1)
+2025-07-21 22:08:28,815 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-07-21 22:12:16,897 - INFO - Received response from LLM
+2025-07-21 22:12:16,901 - INFO - Cleaned LLM response - 64 lines -> 64 lines
+2025-07-21 22:12:16,902 - WARNING - Unbalanced braces: 11 open, 10 close
+2025-07-21 22:12:16,902 - INFO - Attempting to auto-balance braces
+2025-07-21 22:12:16,903 - INFO - Added missing closing brace
+2025-07-22 16:38:16,981 - ERROR - Unexpected error in main loop: 'TerraformAssistant' object has no attribute 'modify_terraform_file'
+2025-07-22 16:39:09,068 - ERROR - Unexpected error in main loop: 'TerraformAssistant' object has no attribute 'modify_terraform_file'
+2025-07-22 16:39:50,121 - ERROR - Unexpected error in main loop: 'TerraformAssistant' object has no attribute 'modify_terraform_file'
+2025-07-22 16:47:23,566 - ERROR - Unexpected error in main loop: 'TerraformAssistant' object has no attribute 'modify_terraform_file'
+2025-07-22 16:48:04,892 - ERROR - Unexpected error in main loop: 'TerraformAssistant' object has no attribute 'modify_terraform_file'
+2025-07-22 16:52:19,915 - ERROR - Unexpected error in main loop: 'TerraformAssistant' object has no attribute 'modify_terraform_file'
+2025-07-22 16:53:02,811 - ERROR - Unexpected error in main loop: 'TerraformAssistant' object has no attribute 'show_current_file'
+2025-07-22 16:53:13,728 - ERROR - Unexpected error in main loop: 'TerraformAssistant' object has no attribute 'modify_terraform_file'
+2025-07-22 16:53:52,125 - INFO - Successfully read Terraform file: /mnt/c/Users/TonyFelix/Documents/AI-ASSISTANT/AzureVm/main.tf
+2025-07-22 16:53:52,126 - INFO - Sending prompt to LLM (attempt 1)
+2025-07-22 16:56:09,946 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-07-22 16:59:15,370 - INFO - Received response from LLM
+2025-07-22 16:59:15,374 - INFO - Cleaned LLM response - 60 lines -> 60 lines
+2025-07-22 16:59:43,039 - INFO - Successfully read Terraform file: /mnt/c/Users/TonyFelix/Documents/AI-ASSISTANT/AzureVm/main.tf
+2025-07-22 16:59:43,040 - INFO - Sending prompt to LLM (attempt 1)
+2025-07-22 17:00:05,692 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2025-07-22 17:03:28,102 - INFO - Received response from LLM
+2025-07-22 17:03:28,104 - INFO - Cleaned LLM response - 63 lines -> 61 lines

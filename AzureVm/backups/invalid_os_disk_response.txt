@@ -1,0 +1,9 @@
+Here is the modified `os_disk` block:
+
+os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+    disk_size_gb         = 40
+}
+
+I simply increased the `disk_size_gb` attribute from 30 to 40, adding an extra 10 GB of disk space.
