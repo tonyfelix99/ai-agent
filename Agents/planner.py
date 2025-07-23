@@ -4,10 +4,12 @@ from langchain.agents import initialize_agent
 from langchain_community.llms import Ollama
 
 from modules.parser import parse_request
+from langchain_core.agents import AgentAction,AgentFinish
 from modules.terraform_io import read_terraform
 from modules.vm_manager import modify_disk, create_vm
-from modules.prompt_user import ask_user
-from modules.terraform_runner import run_tf_init,run_tf_plan,run_tf_init,run_tf_apply,run_tf_destroy
+from modules.terraform_runner import run_tf_plan, run_tf_apply, run_tf_destroy, run_tf_init,confirm_then_run,init_and_plan,plan_then_confirm_apply
+
+
 
 llm = Ollama(model="llama3")
 
@@ -16,19 +18,53 @@ tools = [
     Tool(name="ReadTerraform", func=read_terraform, description="Reads the Terraform file content"),
     Tool(name="ModifyDiskSize", func=modify_disk, description="Modifies disk size in Terraform HCL"),
     Tool(name="CreateVM", func=create_vm, description="Creates a new VM in Terraform HCL"),
-    Tool(name="AskForConfirmation", func=ask_user, description="Asks for user confirmation"),
-    Tool(name="TerraformInit", func=run_tf_init, description="Initializes Terraform in the working directory"),
-    Tool(name="TerraformPlan", func=run_tf_plan, description="Runs terraform plan"),
-    Tool(name="TerraformApply", func=run_tf_apply, description="Runs terraform apply"),
-    Tool(name="TerraformDestroy", func=run_tf_destroy, description="Runs terraform destroy")
+    Tool(
+        name="TerraformInit",
+        func=run_tf_init,
+        description="Initializes the Terraform working directory. Must be run before plan or apply."
+    ),
+    Tool(
+        name="TerraformPlan",
+        func=confirm_then_run(run_tf_plan, "Terraform is about to run PLAN. Proceed?"),
+        description="Runs 'terraform plan'. Only works if 'terraform init' was run beforehand and asks for apply confirmation from user"
+    ),
+    Tool(
+        name="TerraformApply",
+        func=confirm_then_run(run_tf_apply, "Terraform is about to APPLY changes. Proceed?"),
+        description="Runs 'terraform apply'. Only works if 'terraform init' and 'terraform plan' were run beforehand"
+    ),
+    Tool(
+        name="TerraformDestroy",
+        func=confirm_then_run(run_tf_destroy, "Terraform is about to DESTROY infrastructure. Proceed?"),
+        description="Destroy infrastructure using Terraform"
+    ),
+    Tool(
+        name="InitAndPlan",
+        func=confirm_then_run(init_and_plan, "Terraform is about to run INIT and PLAN. Proceed?"),
+        description="Initialize and plan Terraform changes"
+    ),
+    Tool(
+    name="TerraformPlanThenApply",
+    func=plan_then_confirm_apply,
+    description="Plans the infrastructure and then asks for confirmation before applying it."
+)
+
+
+    
 ]
 
+# Tool names that require confirmation
+tools_requiring_confirmation = ["TerraformApply","TerraformPlan","TerraformDestroy", "ModifyDiskSize", "CreateVM"]
+
+# Create the agent
 agent = initialize_agent(
-    tools,
-    llm,
+    tools=tools,
+    llm=llm,
     agent="zero-shot-react-description",
     verbose=True,
 )
+
+
 
 # === Interactive chat loop ===
 print("🛠️ DevOps Assistant Chat (type 'exit' to quit)")
@@ -41,6 +77,9 @@ while True:
         response = agent.invoke(user_input)
         print(f"\n🤖 Assistant: {response}")
     except Exception as e:
+        if type(e).__name__ == "CancelledByUser":
+            print(f"\n🚫 {e}")
+            continue  # Go back to user input
         print(f"\n⚠️ Error: {e}")
 
 
@@ -82,8 +121,7 @@ def run_tf_plan(_: str) -> str:
 
 def run_tf_apply(_: str) -> str:
     return "Terraform apply output: ✓ Changes applied"
-
 def run_tf_destroy(_: str) -> str:
     return "Terraform destroy output: ✓ Resources destroyed"
 
-
+ 
