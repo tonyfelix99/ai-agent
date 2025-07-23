@@ -1,1 +1,13 @@
+# Ignore Terraform state files and provider binaries
+*.tfstate
+*.tfstate.backup
 .terraform/
+crash.log
+*.tfvars
+*.tfvars.json
+*.backup
+*.log
+*.zip
+*.tar.gz
+*.bin
+*.exe
