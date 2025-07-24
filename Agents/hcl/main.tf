@@ -48,7 +48,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   os_disk {
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
-    disk_size_gb         = 20  # updated to 10 GB more
+    disk_size_gb         = 30  # updated to 10 GB more
   }
 
   source_image_reference {

@@ -7,17 +7,6 @@ def get_hcl_dir():
     if not os.path.exists(os.path.join(hcl_dir, "main.tf")):
         raise FileNotFoundError("main.tf not found in hcl directory.")
     return hcl_dir
-
-class CancelledByUser(Exception):
-    pass
-
-def confirm_then_run(action_func, message: str):
-    def wrapper(_: str) -> str:
-        confirmation = input(f"\n⚠️  {message} (yes/no): ").strip().lower()
-        if confirmation != "yes":
-          raise CancelledByUser("Terraform operation cancelled by user.")
-        return action_func("")
-    return wrapper
 def plan_then_confirm_apply(_: str) -> str:
     plan_output = run_tf_plan("")
     print(plan_output)  # Display plan

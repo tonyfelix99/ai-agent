@@ -1,26 +1,37 @@
-# modules/parser.py
 import re
 
-def parse_request(request: str):
-    request = request.lower()
+def extract_actions_from_llm_output(output: object) -> list[str]:
+    """
+    Extracts Terraform-related actions from the LLM output.
+    Accepts both clean and messy formats like bullet points, numbered lists, or paragraphs.
+    Handles both string and AIMessage input.
+    """
 
-    # Relative increase: "add 50GB", "increase by 20GB"
-    inc_match = re.search(r'(increase|add|raise).*?(\d+)\s*gb', request)
-    # Absolute set: "make it 300GB", "set to 150GB"
-    abs_match = re.search(r'(set|make|change).*?(\d+)\s*gb', request)
+    # ✅ Extract content if output is an AIMessage or similar
+    if hasattr(output, "content"):
+        output = output.content
 
-    if inc_match:
-        return {
-            "action": "ModifyDiskSize",
-            "mode": "increment",
-            "amount": int(inc_match.group(2))
-        }
+    output = output.strip()
 
-    elif abs_match:
-        return {
-            "action": "ModifyDiskSize",
-            "mode": "absolute",
-            "amount": int(abs_match.group(2))
-        }
+    # Known supported actions
+    valid_actions = {
+        "TerraformInit", "TerraformPlan", "TerraformApply", "TerraformDestroy",
+        "ModifyDiskSize", "CreateVirtualMachine", "DeleteVirtualMachine"
+    }
 
-    return {"action": "unknown"}
+    extracted = set()
+
+    # Look for capitalized action names
+    for match in re.findall(r"(Terraform[A-Z][a-zA-Z]+|ModifyDiskSize|CreateVirtualMachine|DeleteVirtualMachine)", output):
+        if match in valid_actions:
+            extracted.add(match)
+
+    # Fallback if nothing was found
+    if not extracted:
+        lines = output.splitlines()
+        for line in lines:
+            for action in valid_actions:
+                if action.lower() in line.lower():
+                    extracted.add(action)
+
+    return list(extracted)

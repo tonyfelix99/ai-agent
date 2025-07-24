@@ -44,34 +44,3 @@ def modify_disk(input: str) -> str:
         return f"[❌] Error: {e}"
 
 
-def create_vm(input: str) -> str:
-    parts = dict(item.split("=") for item in input.split(";"))
-    vm_name, region, size = parts["vm"], parts["region"], parts["size"]
-    
-    block = f"""
-resource "azurerm_linux_virtual_machine" "{vm_name}" {{
-  name                = "{vm_name}"
-  location            = "{region}"
-  resource_group_name = "your-rg-name"
-  size                = "Standard_B1s"
-  admin_username      = "azureuser"
-  network_interface_ids = ["<nic_id>"]
-  os_disk {{
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-    disk_size = ''.join(filter(str.isdigit, size))
-...
-disk_size_gb         = "{disk_size}"
-  }}
-  source_image_reference {{
-    publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = "20_04-lts"
-    version   = "latest"
-  }}
-}}
-"""
-    tf = read_terraform("")
-    updated = tf + "\n" + block
-    result = write_terraform(updated)
-    return f"Created VM block for {vm_name}. {result}"
