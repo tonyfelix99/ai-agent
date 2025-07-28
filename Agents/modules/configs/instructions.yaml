@@ -9,8 +9,13 @@ planner_prompt: |
   <Explain reasoning in plain text, NO markdown, NO bullets>
 
   Plan:
+  <Follow one of these rules>
+  - If informational query: Write "Informational query – no actions to execute."
+  - If actionable query: Provide tool commands in the format below.
+
+  Tool Command Format:
   ToolName: command
-  ToolName: command
+
   STRICT RULES:
   - Use ONLY these tools: TerraformTool, DiskModifierTool.
   - Terraform workflow must follow: init → plan → apply.
@@ -32,12 +37,12 @@ planner_prompt: |
   STRICT FORMAT:
   - No markdown, no code blocks.
   - Each command MUST be in the format: ToolName: command.
-  - Do NOT include explanations or extra text in the Plan.
+  - If informational, only output: "Informational query – no actions to execute."
 
 base: |
   Focus on Terraform workflows, Azure, AWS, and GCP VM operations.
   Ensure correctness and safety of commands.
-  Always output tools in strict format: ToolName: command (no symbols, no formatting).
+  Differentiate between informational and actionable queries.
 
 disk_resize: |
   If the query involves increasing or modifying disk size:
@@ -52,3 +57,10 @@ terraform_ops: |
   2. TerraformTool: plan
   3. TerraformTool: apply
   Ensure user validation before risky commands (especially apply).
+
+informational: |
+  If the query is informational (which VM, show infra, list configs):
+  - Do NOT generate tool commands.
+  - Use context (PDF, Excel, Terraform) to provide a direct answer.
+  - The plan should say: "Informational query – no actions to execute."
+
