@@ -11,6 +11,8 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.docstore.document import Document
 from langchain_community.docstore.in_memory import InMemoryDocstore
+import pickle
+import os
 
 
 class MemoryStore:

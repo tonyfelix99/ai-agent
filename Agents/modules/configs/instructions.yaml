@@ -17,6 +17,9 @@ planner_prompt: |
   - For disk changes, use: DiskModifierTool: resize-disk <vm_name> <new_size>.
   - DO NOT output AWS CLI, Azure CLI, or GCP CLI commands.
   - NO markdown, NO notes, NO explanations in Plan.
+
+  Conversation History:
+  {history}
   User Query:
   {query}
 

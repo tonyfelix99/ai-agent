@@ -7,6 +7,8 @@ from Agents.modules.memory import memory
 from Agents.modules.tools import TerraformTool, DiskModifierTool
 import yaml
 import re
+from Agents.modules.persistent_memory import PersistentMemory  # ✅ Correct import
+
 
 # ----------------------------
 # Define state structure
@@ -30,21 +32,37 @@ with open("./Agents/modules/configs/instructions.yaml", "r") as f:
 llm = ChatOllama(model="llama3")
 
 # ----------------------------
+# Load memory
+persistent_memory = PersistentMemory()
+
 # Planner Node
 # ----------------------------
 def planner_node(state: GraphState):
-    query = state["input"]
+    query = state["input"].strip().lower()
+
+    # ✅ Handle recall/history queries
+    recall_phrases = ["recall", "history", "what did i ask", "previous question", "last query", "what was my last"]
+    if any(phrase in query for phrase in recall_phrases):
+        last_interaction = persistent_memory.get_last_interaction()
+        if last_interaction:
+            reasoning = f"Recalling your last query:\nQ: {last_interaction['query']}\nA: {last_interaction['response']}"
+            return {"reasoning": reasoning, "plan": "No new execution plan generated (history recall only)."}
+        else:
+            return {"reasoning": "No previous query found in memory.", "plan": "None"}
+
+    # ✅ Continue normal LLM planning for new queries
+    history = persistent_memory.get_history()
     docs = memory.get_relevant_documents(query)
     context = "\n".join([doc.page_content for doc in docs]) or "No relevant infra context found."
 
     # Build prompt dynamically
     instructions = INSTRUCTIONS.get("base", "")
-    if "disk" in query.lower():
+    if "disk" in query:
         instructions += "\n" + INSTRUCTIONS.get("disk_resize", "")
     instructions += "\n" + INSTRUCTIONS.get("terraform_ops", "")
 
     prompt = PromptTemplate(
-        input_variables=["query", "context", "instructions"],
+        input_variables=["query", "context", "history", "instructions"],
         template=INSTRUCTIONS["planner_prompt"]
     )
 
@@ -52,6 +70,7 @@ def planner_node(state: GraphState):
     response = chain.invoke({
         "query": query,
         "context": context,
+        "history": history,
         "instructions": instructions
     })
 
@@ -68,6 +87,8 @@ def planner_node(state: GraphState):
         if ":" in line
     )
 
+    # ✅ Save interaction to persistent memory
+    persistent_memory.add_interaction(query, reasoning.strip() + "\n" + plan.strip())
     return {"reasoning": reasoning.strip(), "plan": clean_plan}
 
 # ----------------------------
