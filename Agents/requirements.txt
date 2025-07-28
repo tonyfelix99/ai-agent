@@ -1,0 +1,30 @@
+# Core AI & Workflow
+langchain>=0.2.0
+langgraph>=0.0.15
+langchain-ollama>=0.1.0   # For using LLaMA 3 locally
+
+# Embeddings & Vector Store
+faiss-cpu>=1.7.4           # FAISS vector database for memory
+openai>=1.0.0              # For OpenAIEmbeddings (can be swapped if local embeddings used)
+
+# Terraform Parsing & Execution
+python-hcl2>=0.3.5         # Parse Terraform main.tf (HCL2 format)
+subprocess-run>=0.1.0      # For running Terraform commands
+
+# Data Handling (Spreadsheets/CSV)
+pandas>=2.1.0              # For CSV and Excel parsing
+openpyxl>=3.1.2            # Excel engine (xlsx support)
+
+# Environment & Config
+python-dotenv>=1.0.0       # For managing .env variables
+pyyaml>=6.0.1              # YAML for instructions/settings config
+
+# Utilities
+tqdm>=4.66.1               # Progress bars (optional for indexing)
+watchdog>=3.0.0            # (Optional) Auto-reload FAISS when files change
+
+# LLM Local Runtime (Optional)
+ollama>=0.1.6              # For local LLaMA3 inference
+
+# Others (General Compatibility)
+typing-extensions>=4.8.0
