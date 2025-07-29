@@ -6,6 +6,9 @@ from typing import TypedDict
 from Agents.modules.memory import memory
 from Agents.modules.tools import TerraformTool, DiskModifierTool
 from Agents.modules.persistent_memory import PersistentMemory
+from Agents.modules.tools.file_query_tool import FileQueryTool
+from Agents.modules.tools.recall_history_tool import RecallHistoryTool  # ✅ New tool
+
 import yaml
 import re
 
@@ -32,11 +35,9 @@ llm = ChatOllama(model="llama3")
 persistent_memory = PersistentMemory()
 
 # ----------------------------
-# ----------------------------
-# Helper: Summarize Context
+# Summarizer (still used if context too big)
 # ----------------------------
 def summarize_context(context_text: str) -> str:
-    """Summarize lengthy infrastructure context into concise points."""
     if not context_text.strip():
         return "No relevant infra context found."
 
@@ -47,53 +48,38 @@ def summarize_context(context_text: str) -> str:
     summarizer_chain = llm | StrOutputParser()
     return summarizer_chain.invoke(summarizer_prompt).strip()
 
-
 # ----------------------------
-# Planner Node
+# Planner Node (LLM decides reasoning + tool usage)
 # ----------------------------
 def planner_node(state: GraphState):
     query = state["input"].strip().lower()
 
-    # ✅ Handle recall/history queries
-    recall_phrases = ["recall", "history", "what did i ask", "previous question", "last query"]
-    if any(phrase in query for phrase in recall_phrases):
-        last_interaction = persistent_memory.get_last_interaction()
-        if last_interaction:
-            reasoning = f"Recalling your last query:\nQ: {last_interaction['query']}\nA: {last_interaction['response']}"
-            return {"reasoning": reasoning, "plan": "No new execution plan generated (history recall only)."}
-        else:
-            return {"reasoning": "No previous query found in memory.", "plan": "None"}
-
-    # ✅ Retrieve infra context (Terraform + Excel + PDF)
+    # Retrieve infra context (Terraform + Excel + PDF)
     history = persistent_memory.get_history()
     docs = memory.get_relevant_documents(query)
 
-    # Label each source clearly
     labeled_docs = [
         f"[Source: {doc.metadata.get('source', 'unknown')}]\n{doc.page_content}"
         for doc in docs
     ]
     raw_context = "\n\n".join(labeled_docs)
+    context = summarize_context(raw_context) if len(raw_context) > 1500 else (raw_context or "No relevant infra context found.")
 
-    # Summarize context if too large
-    if len(raw_context) > 1500:
-        print("[Memory] Context too long. Summarizing...")
-        context = summarize_context(raw_context)
+    # ✅ Detect query type
+    recall_keywords = ["recall", "history", "previous", "what did i ask", "last query"]
+    disk_keywords = ["disk", "resize", "expand", "increase size"]
+    info_keywords = ["which", "list", "show", "find", "display", "describe", "details", "os of", "cpu of"]
+
+    if any(k in query for k in recall_keywords):
+        active_instructions = INSTRUCTIONS["base"] + "\n" + INSTRUCTIONS["recall"]
+    elif any(k in query for k in disk_keywords):
+        active_instructions = INSTRUCTIONS["base"] + "\n" + INSTRUCTIONS["disk_resize"]
+    elif any(k in query for k in info_keywords):
+        active_instructions = INSTRUCTIONS["base"] + "\n" + INSTRUCTIONS["informational"] + "\n" + INSTRUCTIONS["file_query"]
     else:
-        context = raw_context or "No relevant infra context found."
+        active_instructions = INSTRUCTIONS["base"] + "\n" + INSTRUCTIONS["terraform_ops"]
 
-    # ✅ Detect informational vs actionable queries
-    info_keywords = ["which", "list", "show", "find", "display", "describe", "details"]
-    is_info_query = any(kw in query for kw in info_keywords) and not any(x in query for x in ["resize", "apply", "init", "plan"])
-
-    # Build instructions dynamically
-    instructions = INSTRUCTIONS.get("base", "")
-    if not is_info_query:
-        if "disk" in query:
-            instructions += "\n" + INSTRUCTIONS.get("disk_resize", "")
-        instructions += "\n" + INSTRUCTIONS.get("terraform_ops", "")
-
-    # Generate reasoning & plan from LLM
+    # ✅ Build prompt for LLM
     prompt = PromptTemplate(
         input_variables=["query", "context", "history", "instructions"],
         template=INSTRUCTIONS["planner_prompt"]
@@ -103,32 +89,28 @@ def planner_node(state: GraphState):
         "query": query,
         "context": context,
         "history": history,
-        "instructions": instructions
+        "instructions": active_instructions
     }).strip()
 
-    # Split reasoning & plan
+    # ✅ Parse reasoning & plan
     if "Plan:" in response:
         reasoning, plan = response.split("Plan:", 1)
     else:
         reasoning, plan = response, "No plan generated."
 
-    # ✅ For informational queries: directly return context
-    if is_info_query:
-        answer = f"Based on infra context, here are the matches:\n\n{context}"
-        persistent_memory.add_interaction(query, answer)
-        return {"reasoning": answer, "plan": "Informational query – no actions to execute."}
+    # ✅ Clean plan (Handle recall, info, and tools properly)
+    if "Informational query" in plan:
+        clean_plan = "Informational query – no actions to execute."
+    else:
+        clean_plan = "\n".join(
+            re.sub(r'[*`]+', '', line).strip()
+            for line in plan.splitlines()
+            if ":" in line
+        )
 
-    # ✅ Clean actionable plan lines
-    clean_plan = "\n".join(
-        re.sub(r'[*`]+', '', line).strip()
-        for line in plan.splitlines()
-        if ":" in line
-    )
-
-    # Save reasoning & plan to persistent memory
+    # Save reasoning + interaction
     persistent_memory.add_interaction(query, reasoning.strip() + "\n" + plan.strip())
     return {"reasoning": reasoning.strip(), "plan": clean_plan}
-
 
 
 # ----------------------------
@@ -149,9 +131,17 @@ def executor_node(state: GraphState):
 
     tools = {
         "TerraformTool": TerraformTool(working_dir="./Agents/modules/terraform"),
-        "DiskModifierTool": DiskModifierTool(tf_file="./Agents/modules/terraform/main.tf")
+        "DiskModifierTool": DiskModifierTool(tf_file="./Agents/modules/terraform/main.tf"),
+        "FileQueryTool": FileQueryTool(),
+        "RecallHistoryTool": RecallHistoryTool(persistent_memory)  # ✅ Added tool
     }
-    aliases = {"Terraform": "TerraformTool", "DiskModifier": "DiskModifierTool"}
+
+    aliases = {
+        "Terraform": "TerraformTool",
+        "DiskModifier": "DiskModifierTool",
+        "FileQuery": "FileQueryTool",
+        "RecallHistory": "RecallHistoryTool"
+    }
 
     output = []
     for line in state["plan"].splitlines():
@@ -182,6 +172,8 @@ def executor_node(state: GraphState):
                     if parts[0] == "resize-disk" and len(parts) == 3:
                         vm_name, size = parts[1], parts[2]
                         output.append(tools[tool_name].modify_disk_size(vm_name, size))
+                elif tool_name in ["FileQueryTool", "RecallHistoryTool"]:
+                    output.append(tools[tool_name]._run(command))
 
     return {"result": "\n".join(output)}
 

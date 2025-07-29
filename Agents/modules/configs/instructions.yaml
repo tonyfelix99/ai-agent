@@ -9,19 +9,24 @@ planner_prompt: |
   <Explain reasoning in plain text, NO markdown, NO bullets>
 
   Plan:
-  <Follow one of these rules>
-  - If informational query: Write "Informational query – no actions to execute."
-  - If actionable query: Provide tool commands in the format below.
+  <Follow these strict rules>
+
+  - If recall/history query: Output "RecallHistoryTool:<query>".
+  - If informational query: Output "FileQueryTool:<query>".
+  - If actionable query: Output Terraform/DiskModifier commands as specified.
 
   Tool Command Format:
   ToolName: command
 
   STRICT RULES:
-  - Use ONLY these tools: TerraformTool, DiskModifierTool.
-  - Terraform workflow must follow: init → plan → apply.
-  - For disk changes, use: DiskModifierTool: resize-disk <vm_name> <new_size>.
-  - DO NOT output AWS CLI, Azure CLI, or GCP CLI commands.
-  - NO markdown, NO notes, NO explanations in Plan.
+  - Valid tools: TerraformTool, DiskModifierTool, FileQueryTool, RecallHistoryTool.
+  - For recall/history queries: ALWAYS use RecallHistoryTool.
+  - For informational queries: ALWAYS use FileQueryTool.
+  - For actionable queries:
+      * Terraform workflow: TerraformTool: init → TerraformTool: plan → TerraformTool: apply.
+      * Disk changes: DiskModifierTool: resize-disk <vm_name> <new_size>, followed by TerraformTool: init, plan, apply.
+  - Do NOT output shell commands, AWS CLI, Azure CLI, or GCP CLI.
+  - NO markdown, no extra explanation in Plan.
 
   Conversation History:
   {history}
@@ -35,32 +40,49 @@ planner_prompt: |
   {instructions}
 
   STRICT FORMAT:
-  - No markdown, no code blocks.
-  - Each command MUST be in the format: ToolName: command.
-  - If informational, only output: "Informational query – no actions to execute."
+  - "Reasoning:" followed by plain text.
+  - "Plan:" followed by one or more lines in "ToolName: command" format.
+  - No bullets, no markdown, no extra commentary outside this format.
 
 base: |
-  Focus on Terraform workflows, Azure, AWS, and GCP VM operations.
-  Ensure correctness and safety of commands.
-  Differentiate between informational and actionable queries.
+  Handle cloud DevOps queries across Terraform, Azure, AWS, and GCP.
+  Split queries into:
+    - Infrastructure operations (Terraform init/plan/apply)
+    - Disk resizing
+    - Informational lookups from files
+    - Conversation recall
+  Always produce tool commands in the correct sequence, enforcing safety and validation.
 
 disk_resize: |
-  If the query involves increasing or modifying disk size:
-  - Identify VM and its provider.
-  - Use DiskModifierTool to resize disks in Terraform.
-  - Follow with TerraformTool: init, plan, apply.
-  - Keep commands minimal, correct, and strictly formatted.
+  For disk-related queries:
+  - Identify VM and cloud provider.
+  - Generate: 
+    DiskModifierTool: resize-disk <vm_name> <new_size>
+    TerraformTool: init
+    TerraformTool: plan
+    TerraformTool: apply
+  Always validate before apply.
 
 terraform_ops: |
-  Always include TerraformTool commands in correct order:
-  1. TerraformTool: init
-  2. TerraformTool: plan
-  3. TerraformTool: apply
-  Ensure user validation before risky commands (especially apply).
+  For infrastructure changes:
+  - Sequence must be:
+    TerraformTool: init
+    TerraformTool: plan
+    TerraformTool: apply
+  Ensure apply is confirmed explicitly.
 
 informational: |
-  If the query is informational (which VM, show infra, list configs):
-  - Do NOT generate tool commands.
-  - Use context (PDF, Excel, Terraform) to provide a direct answer.
-  - The plan should say: "Informational query – no actions to execute."
+  For info queries (infra details, VM specs, OS types):
+  - Use FileQueryTool:<query>.
+  - Pull only relevant results from FAISS memory (PDF, Excel, main.tf).
+  - If asking about a specific VM property, return that property ONLY.
+
+file_query: |
+  Always use FileQueryTool:<query> for informational queries.
+
+recall: |
+  For recall/history queries (e.g., "what did I ask before?", "previous query"):
+  - Use RecallHistoryTool:<query>.
+  - Retrieve and display last query and its answer.
+  - Do NOT use FileQueryTool or Terraform for recall.
 

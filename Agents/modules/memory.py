@@ -22,23 +22,36 @@ class MemoryStore:
         self.vm_sheet = "./Agents/modules/infra/vm_details.xlsx"
         self.pdf_file = "./Agents/modules/infra/infra_details.pdf"
 
-        # ✅ Load or create FAISS index
+        # ✅ Load or create FAISS index safely
         if os.path.exists(index_path):
-            print("[Memory] Loading existing FAISS index...")
-            self.vectorstore = FAISS.load_local(index_path, self.embeddings, allow_dangerous_deserialization=True)
+            try:
+                print("[Memory] Loading existing FAISS index...")
+                self.vectorstore = FAISS.load_local(index_path, self.embeddings, allow_dangerous_deserialization=True)
+            except Exception as e:
+                print(f"[Memory] FAISS index corrupted: {e}. Rebuilding...")
+                self._create_empty_index()
+                self._first_time_index()
         else:
             print("[Memory] No FAISS index found. Creating new empty index...")
-            dim = len(self.embeddings.embed_query("test"))
-            index = faiss.IndexFlatL2(dim)
-            self.vectorstore = FAISS(
-                embedding_function=self.embeddings,
-                index=index,
-                docstore=InMemoryDocstore(),
-                index_to_docstore_id={}
-            )
+            self._create_empty_index()
             self._first_time_index()
 
+        # ✅ Start file watcher in background
         threading.Thread(target=self._start_watcher, daemon=True).start()
+
+    # ----------------------
+    # Helper: Create Empty FAISS Index
+    # ----------------------
+    def _create_empty_index(self):
+        dim = len(self.embeddings.embed_query("test"))
+        index = faiss.IndexFlatL2(dim)
+        self.vectorstore = FAISS(
+            embedding_function=self.embeddings,
+            index=index,
+            docstore=InMemoryDocstore(),
+            index_to_docstore_id={}
+        )
+        print("[Memory] Empty FAISS index created.")
 
     def save(self):
         self.vectorstore.save_local(self.index_path)
@@ -200,9 +213,29 @@ class MemoryStore:
             observer.stop()
         observer.join()
 
+    # ----------------------
+    # Retrieve Combined Context
+    # ----------------------
     def get_relevant_documents(self, query):
-        return self.vectorstore.similarity_search(query, k=5)
+        try:
+            docs = self.vectorstore.similarity_search(query, k=10)
+        except ValueError as e:
+            print(f"[Memory] Retrieval error: {e}. Rebuilding FAISS index...")
+            self._create_empty_index()
+            self._first_time_index()
+            docs = self.vectorstore.similarity_search(query, k=10)
+
+        print("\n[Memory] Retrieved relevant docs:")
+        for d in docs:
+            print(f"- Source: {d.metadata['source']} | Snippet: {d.page_content[:80]}...")
+
+        # ✅ Prioritize: PDF > Excel > Terraform
+        pdf_docs = [d for d in docs if d.metadata["source"] == "infra_details.pdf"]
+        excel_docs = [d for d in docs if d.metadata["source"] == "vm_details.xlsx"]
+        tf_docs = [d for d in docs if d.metadata["source"] == "main.tf"]
+
+        return pdf_docs + excel_docs + tf_docs
 
 
-# Initialize memory
+# ✅ Initialize Memory
 memory = MemoryStore()
