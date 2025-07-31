@@ -94,5 +94,21 @@
   {
     "query": "can you increase disk size of simple vm 10 gb more",
     "response": "Here is the output for the given query:\n\nReasoning: The user query is asking to increase the disk size of simple vm 10 gb more. We need to identify the VM and cloud provider before executing any commands.\nTerraformTool: init\nTerraformTool: plan\nDiskModifierTool: resize-disk simple-vm 40GB\nTerraformTool: apply"
+  },
+  {
+    "query": "can you recall what did i asked before?",
+    "response": "Reasoning: The user query is asking to recall what was asked before. Since we have a history of previous queries and responses, we can easily retrieve the last query and its answer.\nRecallHistoryTool: what did i asked before?"
+  },
+  {
+    "query": "can you plan the current configuration",
+    "response": "Reasoning: The user query is asking to plan the current configuration. Since we have infrastructure context from Azure VM, we can execute Terraform commands.\nTerraformTool: init\nTerraformTool: plan\nTerraformTool: apply"
+  },
+  {
+    "query": "can you plan current configuration?",
+    "response": "Reasoning: The user query is asking to plan the current configuration. Since we have infrastructure context from Azure VM, we can execute Terraform commands.\nTerraformTool: init\nTerraformTool: plan\nTerraformTool: apply"
+  },
+  {
+    "query": "can you modify disk size of simple-vm  10 gb more",
+    "response": "Reasoning: The user query is asking to modify the disk size of simple-vm 10 gb more. We need to identify the VM and cloud provider before executing any commands.\nTerraformTool: init\nTerraformTool: plan\nDiskModifierTool: resize-disk simple-vm 40GB\nTerraformTool: apply"
   }
 ]
